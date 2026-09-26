@@ -1,0 +1,1196 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>家庭旅行時間軸</title>
+<meta name="description" content="家庭旅遊時間軸：Google 登入後即時查看行程並留言建議。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+
+<style>
+  /* ============================================================
+     設計 Token（顏色 / 字型）。淺色在 :root，深色跟隨系統設定。
+     ============================================================ */
+  :root {
+    color-scheme: light dark;
+    --paper: #F5F6F1;
+    --card: #FFFFFF;
+    --card-soft: #EEF0E9;
+    --ink: #1C2620;
+    --ink-soft: #5B6660;
+    --line: #DADDD3;
+    --line-strong: #C3C8BA;
+
+    --accent: #2F6F5E;
+    --accent-ink: #FFFFFF;
+    --food: #C1592B;
+    --food-ink: #FFFFFF;
+    --lodging: #3A5578;
+    --lodging-ink: #FFFFFF;
+    --transport: #6C6597;
+    --note: #A9762C;
+    --note-ink: #FFFFFF;
+    --danger: #B3402A;
+    --danger-ink: #FFFFFF;
+
+    --focus: #2F6F5E;
+    --shadow: 0 1px 2px rgba(28,38,32,0.07), 0 6px 16px rgba(28,38,32,0.06);
+
+    --font-display: 'Fraunces', 'Noto Serif TC', serif;
+    --font-body: 'Work Sans', 'Noto Sans TC', -apple-system, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #141F1A;
+      --card: #1B2822;
+      --card-soft: #223027;
+      --ink: #ECF1EC;
+      --ink-soft: #A6B3AB;
+      --line: #2C3A33;
+      --line-strong: #3B4B42;
+
+      --accent: #63C2A4;
+      --accent-ink: #0B1712;
+      --food: #E2915F;
+      --food-ink: #241206;
+      --lodging: #8FA9D6;
+      --lodging-ink: #101A2C;
+      --transport: #B0A8DE;
+      --note: #E4BE6C;
+      --note-ink: #241804;
+      --danger: #E2836C;
+      --danger-ink: #2A0F09;
+
+      --focus: #63C2A4;
+      --shadow: 0 1px 2px rgba(0,0,0,0.45), 0 8px 20px rgba(0,0,0,0.4);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 14px;
+    padding-inline: 16px;
+    padding-block: 20px 60px;
+  }
+  #app { max-width: 880px; margin: 0 auto; }
+  h1, h2, h3 { font-family: var(--font-display); font-weight: 600; margin: 0; text-wrap: balance; }
+  [hidden] { display: none !important; }
+
+  button {
+    font-family: var(--font-body);
+    cursor: pointer;
+    border-radius: 8px;
+    border: 1px solid var(--line-strong);
+    background: var(--card);
+    color: var(--ink);
+    padding: 7px 12px;
+    font-size: 13px;
+    line-height: 1.3;
+  }
+  button:hover { border-color: var(--accent); }
+  button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+  }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  button.danger { background: var(--card); color: var(--danger); border-color: var(--danger); }
+  button.danger:hover { background: var(--danger); color: var(--danger-ink); }
+  button.ghost { background: transparent; border-color: transparent; color: var(--ink-soft); padding: 4px 6px; }
+  button.ghost:hover { color: var(--ink); text-decoration: underline; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+
+  input, select, textarea {
+    font-family: var(--font-body);
+    color: var(--ink);
+    background: var(--card);
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 13px;
+    width: 100%;
+  }
+  /* checkbox 不能吃到 width:100%，否則在 flex 容器裡會被拉伸、把文字擠成窄條 */
+  input[type="checkbox"] { width: auto; flex-shrink: 0; accent-color: var(--accent); }
+  textarea { resize: vertical; min-height: 44px; }
+  input[type="time"], input[type="number"] { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  input:disabled, select:disabled, textarea:disabled { opacity: 1; background: var(--card-soft); color: var(--ink); cursor: default; }
+  input[readonly] { cursor: default; }
+
+  /* -------------------- 登入 / 設定 / 無權限 畫面 -------------------- */
+  .screen {
+    max-width: 460px; margin: 60px auto 0;
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    box-shadow: var(--shadow); padding: 26px 22px;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .screen h1 { font-size: 24px; }
+  .screen p { margin: 0; color: var(--ink-soft); line-height: 1.7; }
+  .screen .err { color: var(--danger); font-weight: 600; }
+  .screen code { font-family: var(--font-mono); background: var(--card-soft); padding: 1px 5px; border-radius: 4px; }
+  .btn-google { padding: 10px 16px; font-size: 14px; font-weight: 600; }
+
+  /* -------------------- 頂部列 -------------------- */
+  .topbar {
+    display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; align-items: flex-start;
+    padding-bottom: 16px; border-bottom: 1px solid var(--line); margin-bottom: 16px;
+  }
+  .trip-title-input {
+    font-family: var(--font-display); font-size: 26px; font-weight: 600;
+    border: 1px solid transparent; background: transparent; padding: 2px 4px; width: auto; min-width: 180px;
+  }
+  .trip-title-input:not([readonly]):hover, .trip-title-input:not([readonly]):focus { border-color: var(--line-strong); background: var(--card); }
+  .trip-title-input[readonly] { background: transparent; }
+  .trip-sub { margin: 4px 0 0; color: var(--ink-soft); font-size: 13px; }
+  .topbar-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .user-chip { font-size: 12px; color: var(--ink-soft); }
+  .role-badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--card-soft); color: var(--ink); border: 1px solid var(--line-strong); }
+  .sync-status { font-size: 12px; color: var(--ink-soft); white-space: nowrap; }
+  .sync-status.live { color: var(--accent); font-weight: 600; }
+  .sync-status.error { color: var(--danger); font-weight: 600; }
+
+  /* -------------------- 日期分頁 -------------------- */
+  .day-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+  .day-tab-btn { padding: 7px 14px; border-radius: 999px; }
+  .day-tab-btn.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+
+  /* -------------------- 單日設定列 -------------------- */
+  .day-settings {
+    display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end;
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 18px; box-shadow: var(--shadow);
+  }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 11px; color: var(--ink-soft); letter-spacing: .03em; }
+  .field.grow { flex: 1; min-width: 160px; }
+  .day-summary { margin-left: auto; font-size: 12px; color: var(--ink-soft); text-align: right; }
+  .day-summary b { color: var(--ink); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .day-summary .conflict { color: var(--danger); font-weight: 600; }
+
+  /* -------------------- 時間軸 -------------------- */
+  .timeline { display: flex; flex-direction: column; }
+  .item-card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    box-shadow: var(--shadow); padding: 14px; position: relative;
+  }
+  .item-card.type-food { border-left: 4px solid var(--food); }
+  .item-card.type-attraction { border-left: 4px solid var(--accent); }
+  .item-card.type-lodging { border-left: 4px solid var(--lodging); }
+  .item-card.type-other { border-left: 4px solid var(--ink-soft); }
+
+  .item-head { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; }
+  .item-time {
+    font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 13px;
+    color: var(--ink-soft); white-space: nowrap; padding-top: 7px; min-width: 96px;
+  }
+  .item-time b { color: var(--ink); font-size: 14px; }
+  .item-main { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 8px; }
+  .item-name-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .type-badge { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+  .type-badge.type-attraction { background: var(--accent); color: var(--accent-ink); }
+  .type-badge.type-food { background: var(--food); color: var(--food-ink); }
+  .type-badge.type-lodging { background: var(--lodging); color: var(--lodging-ink); }
+  .type-badge.type-other { background: var(--ink-soft); color: var(--card); }
+  .item-name-input { font-size: 15px; font-weight: 600; flex: 1; min-width: 140px; }
+  .item-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .item-row .field { flex: 1; min-width: 120px; }
+  .item-row .field.narrow { flex: 0 0 100px; min-width: 100px; }
+  .item-actions { display: flex; gap: 4px; flex-direction: column; }
+  .fixed-time-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-soft); flex-wrap: wrap; }
+  .fixed-time-row input[type="time"] { width: auto; }
+  .fixed-time-row .checkout-field { display: flex; align-items: center; gap: 6px; margin-left: 12px; padding-left: 12px; border-left: 1px solid var(--line); }
+  .conflict-note { color: var(--danger); font-weight: 600; }
+  .wait-note { color: var(--ink-soft); font-style: italic; }
+
+  /* -------------------- 交通連接段 -------------------- */
+  .connector {
+    display: flex; align-items: center; gap: 10px; padding: 10px 14px 10px 34px; margin-left: 40px;
+    border-left: 2px dashed var(--line-strong); font-size: 12px; flex-wrap: wrap;
+  }
+  .connector-label { color: var(--transport); font-weight: 600; white-space: nowrap; }
+  .connector select { width: auto; font-size: 12px; padding: 4px 6px; border-color: var(--transport); color: var(--transport); }
+  .connector .mins-input { width: 64px; font-size: 12px; padding: 4px 6px; }
+  .connector .arrow { color: var(--ink-soft); }
+
+  /* -------------------- 留言／建議 -------------------- */
+  .comments { border-top: 1px dashed var(--line); margin-top: 4px; padding-top: 10px; }
+  .comments-toggle {
+    display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--note); font-weight: 600;
+    background: none; border: none; padding: 2px 0;
+  }
+  .comments-count { background: var(--note); color: var(--note-ink); border-radius: 999px; font-size: 11px; padding: 1px 7px; }
+  .comment-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+  .comment-bubble {
+    background: var(--card-soft); border-radius: 8px; padding: 7px 10px; font-size: 13px;
+    display: flex; gap: 8px; align-items: flex-start;
+  }
+  .comment-bubble.resolved { opacity: .55; }
+  .comment-bubble .txt { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .comment-bubble .meta { font-size: 11px; color: var(--ink-soft); display: block; margin-top: 2px; }
+  .comment-bubble .txt.resolved-text { text-decoration: line-through; }
+  .comment-form { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .comment-form input[name="text"] { flex: 1; min-width: 160px; }
+  .comment-as { font-size: 11px; color: var(--ink-soft); width: 100%; }
+
+  /* -------------------- 新增列 / 空狀態 -------------------- */
+  .add-item-row { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+  .empty-day { padding: 30px 10px; text-align: center; color: var(--ink-soft); border: 1px dashed var(--line-strong); border-radius: 12px; }
+
+  footer.help { margin-top: 30px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-soft); line-height: 1.7; }
+  footer.help summary { cursor: pointer; color: var(--ink); font-weight: 600; }
+
+  /* -------------------- Toast / Modal -------------------- */
+  .toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+    background: var(--ink); color: var(--paper); padding: 10px 18px; border-radius: 999px;
+    font-size: 13px; box-shadow: var(--shadow); z-index: 50;
+  }
+  .modal-overlay { position: fixed; inset: 0; background: rgba(20,25,22,.45); display: flex; align-items: center; justify-content: center; z-index: 60; padding: 16px; }
+  .modal-box { background: var(--card); border-radius: 12px; padding: 18px; max-width: 420px; width: 100%; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+  @media (max-width: 560px) {
+    .topbar { flex-direction: column; }
+    .item-time { min-width: 0; }
+    .connector { margin-left: 0; padding-left: 14px; }
+    .fixed-time-row .checkout-field { margin-left: 0; padding-left: 0; border-left: none; }
+  }
+
+  /* -------------------- 列印：所有天都印出來，留言也展開 -------------------- */
+  @media print {
+    body { background: #fff; color: #000; padding: 0; }
+    .topbar-actions, .day-tabs, .add-item-row, .comment-form, .comments-toggle, button, footer.help { display: none !important; }
+    .day-panel[hidden] { display: block !important; }
+    [data-comments-body][hidden] { display: block !important; }
+    .item-card, .day-settings { box-shadow: none; border: 1px solid #999; break-inside: avoid; }
+    .day-panel { margin-bottom: 24px; }
+  }
+</style>
+</head>
+
+<body>
+<div id="app">
+
+  <!-- ============ 畫面 0：尚未設定 Firebase ============ -->
+  <section id="screenSetup" class="screen" hidden>
+    <h1>還沒填入 Firebase 設定</h1>
+    <p>請打開這個檔案，找到最上面的 <code>FIREBASE_CONFIG</code>，把 Firebase 專案的設定貼進去，並在 <code>OWNER_EMAILS</code> 填入你的 Gmail。</p>
+  </section>
+
+  <!-- ============ 畫面 1：載入中 ============ -->
+  <section id="screenLoading" class="screen">
+    <p>載入中…</p>
+  </section>
+
+  <!-- ============ 畫面 2：登入 ============ -->
+  <section id="screenLogin" class="screen" hidden>
+    <h1>家庭旅行時間軸</h1>
+    <p>請用被邀請的 Google 帳號登入，才能查看行程與留言建議。</p>
+    <button id="btnLogin" class="primary btn-google" type="button">用 Google 帳號登入</button>
+    <p id="loginError" class="err" hidden></p>
+    <p style="font-size:12px">如果在 LINE 或其他 App 內建瀏覽器打不開登入視窗，請改用 Chrome 或 Safari 開啟這個網址。</p>
+  </section>
+
+  <!-- ============ 畫面 3：登入了但不在名單內 ============ -->
+  <section id="screenDenied" class="screen" hidden>
+    <h1>這個帳號沒有權限</h1>
+    <p>你目前登入的是 <b id="deniedEmail"></b>，不在行程的邀請名單內。請聯絡行程主人，請他把這個 Gmail 加進名單，或改用已被邀請的帳號登入。</p>
+    <button id="btnDeniedLogout" type="button">登出，改用其他帳號</button>
+  </section>
+
+  <!-- ============ 畫面 4：主畫面 ============ -->
+  <div id="mainShell" hidden>
+    <header class="topbar">
+      <div>
+        <input id="tripTitleInput" class="trip-title-input" aria-label="行程標題">
+        <p class="trip-sub">家庭旅遊時間軸・自動計算停留與交通時間・家人可直接留言建議</p>
+      </div>
+      <div class="topbar-actions">
+        <span id="syncStatus" class="sync-status"></span>
+        <span id="roleBadge" class="role-badge"></span>
+        <span id="userChip" class="user-chip"></span>
+        <button id="btnExport" type="button" title="把整份行程與留言存成 JSON 備份">匯出 JSON</button>
+        <button id="btnImportTrigger" type="button" hidden title="讀取 JSON 行程檔（會覆蓋目前行程）">匯入 JSON</button>
+        <input type="file" id="fileImport" accept=".json,application/json" hidden>
+        <button id="btnPrint" type="button" title="開啟列印，可另存成 PDF">列印 / PDF</button>
+        <button id="btnLogout" type="button">登出</button>
+      </div>
+    </header>
+
+    <!-- 尚未建立行程時（只有主人會看到按鈕） -->
+    <section id="emptyTrip" class="screen" style="margin-top:20px" hidden>
+      <h2>還沒有行程</h2>
+      <p id="emptyTripText"></p>
+      <button id="btnCreateBlank" class="primary" type="button" hidden>建立空白行程</button>
+    </section>
+
+    <nav class="day-tabs" id="dayTabs" aria-label="行程天數"></nav>
+    <main id="dayContent"></main>
+
+    <footer class="help">
+      <details>
+        <summary>使用說明</summary>
+        <p>
+          ・行程由主人編輯，所有受邀家人打開網頁都會即時看到最新內容，不需要重新整理或傳檔案。<br>
+          ・每個地點下方的「建議與留言」，任何受邀家人都能留言；留言會顯示你的 Google 名稱，不能冒用別人。已處理的建議可以勾選，留言者本人或主人可以刪除。<br>
+          ・停留時間與交通時間都是主人自行輸入的預估值，工具不會查詢地圖或路況。<br>
+          ・如果某一站有固定時間（訂位、預約、飛機），主人可勾選「固定時間」，工具會檢查前面行程會不會來不及。
+        </p>
+      </details>
+    </footer>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+<div id="modalRoot"></div>
+
+<script type="module">
+/* ==================================================================
+   家庭旅行時間軸（Firebase 版）
+   ------------------------------------------------------------------
+   資料放在 Firestore：
+     trips/main                 行程本體（標題、每天、每個地點；不含留言）
+     trips/main/comments/{id}   留言（每則一份文件）
+   為什麼把留言拆出來：這樣「安全規則」可以規定
+     - 只有主人能改行程本體
+     - 受邀家人只能新增留言、勾選已處理、刪除自己的留言
+   真正的權限控管在 Firebase 的安全規則（不是這個檔案），
+   這個檔案裡的 OWNER_EMAILS 只是用來決定要顯示哪些按鈕。
+
+   檔案結構：
+     0. 設定（要你自己填）
+     1. 工具函式
+     2. 全域狀態
+     3. 時間軸計算（純函式）
+     4. 畫面渲染
+     5. 事件處理
+     6. 儲存與同步（Firestore）
+     7. 登入流程與啟動
+   ================================================================== */
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy,
+  addDoc, updateDoc, deleteDoc, getDocs, where, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+
+/* ---------------- 0. 設定（要你自己填） ---------------- */
+
+// Firebase 網頁應用程式設定。這些值不是機密（真正的保護在安全規則），可以放在網頁裡。
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDiiNjOj4haA6XYHDb0Q_unEruKxYJPdJE",
+  authDomain: "familytrip-7f7fb.firebaseapp.com",
+  projectId: "familytrip-7f7fb",
+  storageBucket: "familytrip-7f7fb.firebasestorage.app",
+  messagingSenderId: "105573646772",
+  appId: "1:105573646772:web:3d26484233c9cc6b49f2e1"
+};
+
+// 主人（可以編輯行程）的 Gmail，全部小寫。必須和安全規則裡的 ownerEmails 一致。
+// ★ 請把下面這一行換成你自己的 Gmail。
+const OWNER_EMAILS = ["your-name@gmail.com"];
+
+const TRIP_ID = "main"; // 行程文件名稱，一般不需要改
+
+const TRAVEL_MODES = ['步行', '捷運', '開車', '大眾運輸', '騎車/機車', '計程車/叫車', '其他'];
+const TYPE_LABELS = { attraction: '景點', food: '餐廳', lodging: '住宿', other: '其他' };
+const ITEM_DEFAULTS_BY_TYPE = {
+  attraction: { durationMin: 60, travelToNextMin: 15 },
+  food: { durationMin: 60, travelToNextMin: 15 },
+  lodging: { durationMin: 600, travelToNextMin: 0 },
+  other: { durationMin: 60, travelToNextMin: 15 }
+};
+const ACTIVE_DAY_KEY = 'family-trip-active-day';
+
+
+/* ---------------- 1. 工具函式 ---------------- */
+
+const $ = (id) => document.getElementById(id);
+
+let idSeq = 0;
+function uid(prefix) {
+  idSeq += 1;
+  return prefix + '_' + Date.now().toString(36) + '_' + idSeq;
+}
+
+// "HH:MM" -> 分鐘數；空字串回傳 null
+function hhmmToMinutes(hhmm) {
+  if (!hhmm) return null;
+  const parts = hhmm.split(':');
+  if (parts.length !== 2) return null;
+  const h = Number(parts[0]), m = Number(parts[1]);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
+}
+
+// 分鐘數 -> "HH:MM"，超過 24 小時標示「+1日」
+function minutesToHHMM(totalMin) {
+  const dayOverflow = Math.floor(totalMin / 1440);
+  const m = ((totalMin % 1440) + 1440) % 1440;
+  const hhmm = String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  return dayOverflow > 0 ? hhmm + ' (+' + dayOverflow + '日)' : hhmm;
+}
+
+function minutesToDurationLabel(min) {
+  min = Number(min) || 0;
+  if (min < 60) return min + ' 分';
+  const h = Math.floor(min / 60), m = min % 60;
+  return m === 0 ? h + ' 小時' : h + ' 小時 ' + m + ' 分';
+}
+
+function escapeHtml(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function todayISODate() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function safeLocalGet(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+function safeLocalSet(key, val) { try { localStorage.setItem(key, val); } catch (e) { /* 忽略 */ } }
+
+// 把來源不明的資料（Firestore 文件、匯入的 JSON）整理成可安全渲染的形狀。
+// 注意：留言不在這裡處理（留言另外存在 comments 子集合）。
+function normalizeItem(raw) {
+  raw = raw || {};
+  return {
+    id: raw.id || uid('item'),
+    type: TYPE_LABELS[raw.type] ? raw.type : 'other',
+    name: raw.name || '',
+    note: raw.note || '',
+    durationMin: Number(raw.durationMin) || 0,
+    fixedTimeEnabled: !!raw.fixedTimeEnabled,
+    fixedStartTime: raw.fixedStartTime || '',
+    travelToNextMode: raw.travelToNextMode || '步行',
+    travelToNextMin: Number(raw.travelToNextMin) || 0,
+    checkoutTime: raw.checkoutTime || ''
+  };
+}
+
+function normalizeTrip(raw) {
+  const days = (raw && Array.isArray(raw.days) ? raw.days : []).map((d) => ({
+    id: (d && d.id) || uid('day'),
+    label: (d && d.label) || 'Day',
+    date: (d && d.date) || '',
+    startTime: (d && d.startTime) || '09:00',
+    items: (d && Array.isArray(d.items)) ? d.items.map(normalizeItem) : []
+  }));
+  return { tripTitle: (raw && raw.tripTitle) || '我的旅行', days: days };
+}
+
+function buildBlankTrip() {
+  return { tripTitle: '我的旅行', days: [{ id: uid('day'), label: 'Day 1', date: todayISODate(), startTime: '09:00', items: [] }] };
+}
+
+
+/* ---------------- 2. 全域狀態 ---------------- */
+
+let app = null, auth = null, db = null;
+let currentUser = null;
+let isOwner = false;           // 主人才能編輯行程
+let trip = null;               // 行程本體；null 代表雲端還沒有行程
+let tripLoaded = false;        // 是否已收到第一份雲端資料
+let commentsByItem = {};       // itemId -> 留言陣列
+let activeDayId = safeLocalGet(ACTIVE_DAY_KEY) || null; // 只存在這台裝置，不同步
+const openComments = {};       // itemId -> 是否展開留言框（畫面狀態，不同步）
+const commentDrafts = {};      // itemId -> 還沒送出的留言文字（避免重繪把打到一半的字沖掉）
+
+let unsubTrip = null, unsubComments = null;
+let isFieldFocused = false;    // 使用者正在輸入欄位時，先不重繪
+let renderPending = false;
+
+const canEdit = () => isOwner;
+
+
+/* ---------------- 3. 時間軸計算（純函式） ---------------- */
+
+// 依序算出每個地點的開始／結束時間，並偵測「固定時間來不及」。
+// 住宿的 checkoutTime 只是提醒文字，不會參與計算（隔天的時間軸從那天自己的出發時間重新起算）。
+function computeSchedule(day) {
+  const rows = [];
+  let cursor = hhmmToMinutes(day.startTime);
+  if (cursor == null) cursor = 9 * 60;
+
+  day.items.forEach((item) => {
+    let startMin = cursor, waitMin = 0, conflict = false;
+    if (item.fixedTimeEnabled) {
+      const fixedMin = hhmmToMinutes(item.fixedStartTime);
+      if (fixedMin != null) {
+        if (fixedMin < cursor) { conflict = true; startMin = cursor; }
+        else { waitMin = fixedMin - cursor; startMin = fixedMin; }
+      }
+    }
+    const endMin = startMin + (Number(item.durationMin) || 0);
+    rows.push({ item: item, startMin: startMin, endMin: endMin, waitMin: waitMin, conflict: conflict });
+    cursor = endMin + (Number(item.travelToNextMin) || 0);
+  });
+  return { rows: rows, dayEndMin: cursor };
+}
+
+
+/* ---------------- 4. 畫面渲染 ---------------- */
+
+function showScreen(name) {
+  ['screenSetup', 'screenLoading', 'screenLogin', 'screenDenied'].forEach((id) => { $(id).hidden = (id !== name); });
+  $('mainShell').hidden = (name !== 'main');
+}
+
+function getActiveDay() {
+  if (!trip) return null;
+  return trip.days.find((d) => d.id === activeDayId) || trip.days[0] || null;
+}
+
+// 滑鼠／手指按住期間不重繪：按鈕在 mousedown 到 mouseup 之間如果被重繪換掉，這一下點擊就會消失
+// （例如剛在欄位打完字、直接去按「新增景點」，欄位失焦觸發的重繪會吃掉按鈕的點擊）。
+let pointerDown = false;
+document.addEventListener('pointerdown', () => { pointerDown = true; }, true);
+const releasePointer = () => {
+  pointerDown = false;
+  // 等這次 click 事件跑完（setTimeout 0）再補做被延後的重繪
+  setTimeout(() => { if (renderPending && !isFieldFocused && !pointerDown) { renderPending = false; renderNow(); } }, 0);
+};
+document.addEventListener('pointerup', releasePointer, true);
+document.addEventListener('pointercancel', releasePointer, true);
+
+function render() {
+  if (pointerDown) { renderPending = true; return; }
+  renderNow();
+}
+
+function renderNow() {
+  renderPending = false;
+  if (!currentUser) return;
+  renderTopbar();
+
+  const hasTrip = !!trip && trip.days.length > 0;
+  $('emptyTrip').hidden = hasTrip || !tripLoaded;
+  if (!hasTrip) {
+    $('emptyTripText').textContent = isOwner
+      ? '雲端還沒有行程。可以按下方建立空白行程，或用右上角「匯入 JSON」載入現成的行程檔。'
+      : '行程主人還沒有建立行程，稍後再回來看看。';
+    $('btnCreateBlank').hidden = !isOwner;
+    $('dayTabs').innerHTML = '';
+    $('dayContent').innerHTML = '';
+    return;
+  }
+
+  const active = getActiveDay();
+  activeDayId = active.id;
+  renderDayTabs();
+  $('dayContent').innerHTML = trip.days.map(renderDayPanel).join('');
+}
+
+// 雲端傳來更新時使用：使用者正在輸入欄位就先不重繪，等他離開欄位再補做。
+function requestRender() {
+  if (isFieldFocused) { renderPending = true; return; }
+  render();
+}
+
+function renderTopbar() {
+  const input = $('tripTitleInput');
+  const title = trip ? trip.tripTitle : '家庭旅行時間軸';
+  if (document.activeElement !== input && input.value !== title) input.value = title;
+  input.readOnly = !canEdit();
+  document.title = title;
+
+  $('roleBadge').textContent = isOwner ? '編輯者' : '檢視・可留言';
+  $('userChip').textContent = currentUser.displayName || currentUser.email;
+  $('btnImportTrigger').hidden = !isOwner;
+}
+
+function renderDayTabs() {
+  const parts = trip.days.map((day) => {
+    const active = day.id === activeDayId;
+    const dateLabel = day.date ? escapeHtml(day.date) : '未設定日期';
+    return '<button type="button" class="day-tab-btn' + (active ? ' active' : '') + '" data-action="select-day" data-day-id="' + day.id + '">'
+      + escapeHtml(day.label) + '<br><small style="font-weight:400">' + dateLabel + '</small></button>';
+  });
+  if (canEdit()) parts.push('<button type="button" data-action="add-day" title="新增一天">+ 新增一天</button>');
+  $('dayTabs').innerHTML = parts.join('');
+}
+
+function renderDayPanel(day) {
+  const ro = canEdit() ? '' : ' disabled';
+  const isActive = day.id === activeDayId;
+  const schedule = computeSchedule(day);
+  const hasConflict = schedule.rows.some((r) => r.conflict);
+  const totalVisitMin = day.items.reduce((s, it) => s + (Number(it.durationMin) || 0), 0);
+  const totalTravelMin = day.items.reduce((s, it) => s + (Number(it.travelToNextMin) || 0), 0);
+
+  let html = '<section class="day-panel" data-day-id="' + day.id + '"' + (isActive ? '' : ' hidden') + '>';
+
+  html += '<div class="day-settings">';
+  html += '<div class="field"><label for="dayLabel-' + day.id + '">名稱</label>'
+    + '<input id="dayLabel-' + day.id + '" data-field="label" data-day-id="' + day.id + '" value="' + escapeHtml(day.label) + '" style="width:190px"' + ro + '></div>';
+  html += '<div class="field"><label for="dayDate-' + day.id + '">日期</label>'
+    + '<input id="dayDate-' + day.id + '" type="date" data-field="date" data-day-id="' + day.id + '" value="' + escapeHtml(day.date || '') + '"' + ro + '></div>';
+  html += '<div class="field"><label for="dayStart-' + day.id + '">出發時間</label>'
+    + '<input id="dayStart-' + day.id + '" type="time" data-field="startTime" data-day-id="' + day.id + '" value="' + escapeHtml(day.startTime || '09:00') + '"' + ro + '></div>';
+  html += '<div class="day-summary">'
+    + day.items.length + ' 個地點・遊玩 ' + minutesToDurationLabel(totalVisitMin) + '・交通 ' + minutesToDurationLabel(totalTravelMin) + '<br>'
+    + '預估結束：<b>' + minutesToHHMM(schedule.dayEndMin) + '</b>'
+    + (hasConflict ? '　<span class="conflict">⚠ 有站別時間可能來不及</span>' : '')
+    + '</div>';
+  if (canEdit() && trip.days.length > 1) {
+    html += '<button type="button" class="danger" data-action="delete-day" data-day-id="' + day.id + '">刪除這天</button>';
+  }
+  html += '</div>';
+
+  if (day.items.length === 0) {
+    html += '<div class="empty-day">這天還沒有安排任何地點。</div>';
+  } else {
+    html += '<div class="timeline">';
+    schedule.rows.forEach((row, idx) => {
+      html += renderItemCard(day, row);
+      if (idx < schedule.rows.length - 1) html += renderConnector(day, row, schedule.rows[idx + 1]);
+    });
+    html += '</div>';
+  }
+
+  if (canEdit()) {
+    html += '<div class="add-item-row">'
+      + ['attraction', 'food', 'lodging', 'other'].map((t) =>
+        '<button type="button" data-action="add-item" data-day-id="' + day.id + '" data-type="' + t + '">+ 新增' + (t === 'other' ? '其他站點' : TYPE_LABELS[t]) + '</button>'
+      ).join('')
+      + '</div>';
+  }
+  html += '</section>';
+  return html;
+}
+
+function durationLabelForType(type) { return type === 'lodging' ? '住宿(分)' : '停留(分)'; }
+
+function renderItemCard(day, row) {
+  const ro = canEdit() ? '' : ' disabled';
+  const item = row.item;
+  const typeClass = 'type-' + item.type;
+  const isLodging = item.type === 'lodging';
+  const comments = commentsByItem[item.id] || [];
+  const unresolved = comments.filter((c) => !c.resolved).length;
+  const dataIds = ' data-day-id="' + day.id + '" data-item-id="' + item.id + '"';
+
+  let html = '<article class="item-card ' + typeClass + '" data-item-id="' + item.id + '"><div class="item-head">';
+  html += '<div class="item-time"><b>' + minutesToHHMM(row.startMin) + '</b><br>~ ' + minutesToHHMM(row.endMin) + '</div>';
+
+  html += '<div class="item-main"><div class="item-name-row">';
+  html += '<span class="type-badge ' + typeClass + '">' + TYPE_LABELS[item.type] + '</span>';
+  html += '<input class="item-name-input" id="name-' + item.id + '" data-field="name"' + dataIds + ' value="' + escapeHtml(item.name) + '" placeholder="' + (isLodging ? '飯店／民宿名稱' : '地點名稱') + '" aria-label="名稱"' + ro + '>';
+  html += '</div>';
+
+  html += '<div class="item-row">';
+  html += '<div class="field narrow"><label for="dur-' + item.id + '">' + durationLabelForType(item.type) + '</label>'
+    + '<input type="number" min="0" step="5" id="dur-' + item.id + '" data-field="durationMin"' + dataIds + ' value="' + Number(item.durationMin || 0) + '"' + ro + '></div>';
+  html += '<div class="field grow"><label for="note-' + item.id + '">備註 / 地址</label>'
+    + '<textarea id="note-' + item.id + '" data-field="note"' + dataIds + ' placeholder="地址、訂位資訊、注意事項..."' + ro + '>' + escapeHtml(item.note) + '</textarea></div>';
+  html += '</div>';
+
+  html += '<div class="fixed-time-row">';
+  html += '<input type="checkbox" id="fixedOn-' + item.id + '" data-field="fixedTimeEnabled"' + dataIds + (item.fixedTimeEnabled ? ' checked' : '') + ro + '>';
+  html += '<label for="fixedOn-' + item.id + '">固定時間（' + (isLodging ? '飯店入住時間' : '訂位／預約／航班') + '）</label>';
+  if (item.fixedTimeEnabled) {
+    html += '<input type="time" style="max-width:110px" id="fixedTime-' + item.id + '" data-field="fixedStartTime"' + dataIds + ' value="' + escapeHtml(item.fixedStartTime || '') + '"' + ro + '>';
+    if (row.conflict) html += '<span class="conflict-note">⚠ 前面行程排下來會晚到</span>';
+    else if (row.waitMin > 0) html += '<span class="wait-note">提前抵達，需等待 ' + row.waitMin + ' 分鐘</span>';
+  }
+  if (isLodging) {
+    html += '<span class="checkout-field"><label for="checkout-' + item.id + '">隔天退房時間</label>'
+      + '<input type="time" style="max-width:110px" id="checkout-' + item.id + '" data-field="checkoutTime"' + dataIds + ' value="' + escapeHtml(item.checkoutTime || '') + '"' + ro + '>'
+      + '<span style="font-style:italic">（僅供提醒）</span></span>';
+  }
+  html += '</div></div>'; // .fixed-time-row, .item-main
+
+  if (canEdit()) {
+    html += '<div class="item-actions">'
+      + '<button type="button" class="ghost" data-action="move-item-up"' + dataIds + ' title="往前移">↑</button>'
+      + '<button type="button" class="ghost" data-action="move-item-down"' + dataIds + ' title="往後移">↓</button>'
+      + '<button type="button" class="ghost" data-action="delete-item"' + dataIds + ' title="刪除這一站">✕</button>'
+      + '</div>';
+  }
+  html += '</div>'; // .item-head
+
+  // 留言
+  const draft = commentDrafts[item.id] || '';
+  html += '<div class="comments">';
+  html += '<button type="button" class="comments-toggle" data-action="toggle-comments" data-item-id="' + item.id + '">'
+    + '💬 建議與留言 <span class="comments-count">' + comments.length + (unresolved > 0 ? ' ・ ' + unresolved + ' 則未處理' : '') + '</span><span>▾</span></button>';
+  html += '<div data-comments-body="' + item.id + '"' + (openComments[item.id] ? '' : ' hidden') + '>';
+  if (comments.length > 0) {
+    html += '<div class="comment-list">';
+    comments.forEach((c) => {
+      const canDelete = canEdit() || (currentUser && c.authorUid === currentUser.uid);
+      html += '<div class="comment-bubble' + (c.resolved ? ' resolved' : '') + '">';
+      html += '<input type="checkbox" title="標記為已處理" data-action="toggle-comment-resolved" data-comment-id="' + c.id + '"' + (c.resolved ? ' checked' : '') + '>';
+      html += '<span class="txt' + (c.resolved ? ' resolved-text' : '') + '">' + escapeHtml(c.text)
+        + '<span class="meta">' + escapeHtml(c.authorName || '匿名') + '・' + formatCommentTime(c.createdAtMs) + '</span></span>';
+      if (canDelete) html += '<button type="button" class="ghost" data-action="delete-comment" data-comment-id="' + c.id + '" title="刪除留言">✕</button>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+  html += '<form class="comment-form" data-action="add-comment" data-item-id="' + item.id + '">';
+  html += '<span class="comment-as">以「' + escapeHtml(currentUser.displayName || currentUser.email) + '」的名義留言</span>';
+  html += '<input name="text" placeholder="提出你的建議，例如：想改時間、換地點..." aria-label="留言內容" value="' + escapeHtml(draft) + '" maxlength="1000" required>';
+  html += '<button type="submit" class="primary">送出建議</button>';
+  html += '</form></div></div></article>';
+  return html;
+}
+
+function formatCommentTime(ms) {
+  if (!ms) return '剛剛';
+  return new Date(ms).toLocaleString('zh-TW', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function renderConnector(day, fromRow, toRow) {
+  const ro = canEdit() ? '' : ' disabled';
+  const item = fromRow.item;
+  const dataIds = ' data-day-id="' + day.id + '" data-item-id="' + item.id + '"';
+  let html = '<div class="connector"><span class="connector-label">交通</span>';
+  html += '<select data-field="travelToNextMode"' + dataIds + ro + '>';
+  TRAVEL_MODES.forEach((mode) => {
+    html += '<option value="' + escapeHtml(mode) + '"' + (item.travelToNextMode === mode ? ' selected' : '') + '>' + escapeHtml(mode) + '</option>';
+  });
+  html += '</select>';
+  html += '<input class="mins-input" type="number" min="0" step="5" data-field="travelToNextMin"' + dataIds + ' value="' + Number(item.travelToNextMin || 0) + '"' + ro + '> 分';
+  html += '<span class="arrow">→ 預計抵達 ' + minutesToHHMM(toRow.startMin) + '</span>';
+  if (toRow.conflict) html += '<span class="conflict-note">⚠ 會晚於下一站的固定時間</span>';
+  else if (toRow.waitMin > 0) html += '<span class="wait-note">（提早到，等待 ' + toRow.waitMin + ' 分）</span>';
+  html += '</div>';
+  return html;
+}
+
+function setSyncStatus(kind, text) {
+  const el = $('syncStatus');
+  el.className = 'sync-status' + (kind ? ' ' + kind : '');
+  el.textContent = text;
+}
+
+let toastTimer = null;
+function showToast(message) {
+  const el = $('toast');
+  el.textContent = message;
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, 2600);
+}
+
+// 不用瀏覽器原生 confirm()，自己刻確認視窗。
+function showConfirm(message, onConfirm) {
+  $('modalRoot').innerHTML = '<div class="modal-overlay" id="confirmOverlay"><div class="modal-box" role="alertdialog" aria-modal="true">'
+    + '<p style="margin:0">' + escapeHtml(message) + '</p>'
+    + '<div class="modal-actions"><button type="button" id="confirmCancel">取消</button>'
+    + '<button type="button" class="danger" id="confirmOk">確定</button></div></div></div>';
+  $('confirmCancel').addEventListener('click', closeModal);
+  $('confirmOverlay').addEventListener('click', (e) => { if (e.target.id === 'confirmOverlay') closeModal(); });
+  $('confirmOk').addEventListener('click', () => { closeModal(); onConfirm(); });
+}
+function closeModal() { $('modalRoot').innerHTML = ''; }
+
+
+/* ---------------- 5. 事件處理 ---------------- */
+
+// 主人改了行程 → 更新畫面並排程存檔
+function commitAndRender() {
+  scheduleSave();
+  render();
+}
+
+// 追蹤「使用者是不是正在編輯欄位」：正在打字時，雲端傳來的更新先暫存，等他離開欄位才重繪，
+// 否則整頁重繪會把打到一半的字沖掉。
+$('app').addEventListener('focusin', (e) => {
+  if (isFormField(e.target)) isFieldFocused = true;
+});
+$('app').addEventListener('focusout', (e) => {
+  if (!isFormField(e.target)) return;
+  setTimeout(() => {
+    const a = document.activeElement;
+    if (a && isFormField(a) && $('app').contains(a)) return; // 只是跳到下一個欄位
+    isFieldFocused = false;
+    if (renderPending && !pointerDown) { renderPending = false; renderNow(); }
+  }, 0);
+});
+function isFormField(el) {
+  return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT');
+}
+
+// 留言輸入框：記住草稿，重繪後不會消失
+$('app').addEventListener('input', (e) => {
+  const form = e.target.closest && e.target.closest('form[data-action="add-comment"]');
+  if (form && e.target.name === 'text') commentDrafts[form.dataset.itemId] = e.target.value;
+});
+
+$('app').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const action = btn.dataset.action;
+  const dayOf = (id) => trip && trip.days.find((d) => d.id === id);
+
+  if (action === 'select-day') {
+    activeDayId = btn.dataset.dayId;
+    safeLocalSet(ACTIVE_DAY_KEY, activeDayId);
+    render();
+  } else if (action === 'toggle-comments') {
+    openComments[btn.dataset.itemId] = !openComments[btn.dataset.itemId];
+    render();
+  } else if (action === 'delete-comment') {
+    deleteComment(btn.dataset.commentId);
+  } else if (!canEdit()) {
+    return; // 以下都是主人專屬
+  } else if (action === 'add-day') {
+    const d = { id: uid('day'), label: 'Day ' + (trip.days.length + 1), date: '', startTime: '09:00', items: [] };
+    trip.days.push(d);
+    activeDayId = d.id;
+    commitAndRender();
+  } else if (action === 'delete-day') {
+    const day = dayOf(btn.dataset.dayId);
+    showConfirm('確定要刪除「' + (day ? day.label : '這一天') + '」嗎？裡面的地點都會一併刪除。', () => {
+      trip.days = trip.days.filter((d) => d.id !== btn.dataset.dayId);
+      if (activeDayId === btn.dataset.dayId) activeDayId = trip.days[0].id;
+      commitAndRender();
+    });
+  } else if (action === 'add-item') {
+    const day = dayOf(btn.dataset.dayId);
+    if (!day) return;
+    const type = btn.dataset.type || 'attraction';
+    const defaults = ITEM_DEFAULTS_BY_TYPE[type] || ITEM_DEFAULTS_BY_TYPE.other;
+    const item = normalizeItem({ id: uid('item'), type: type, durationMin: defaults.durationMin, travelToNextMin: defaults.travelToNextMin });
+    day.items.push(item);
+    commitAndRender();
+    const nameInput = $('name-' + item.id);
+    if (nameInput) nameInput.focus();
+  } else if (action === 'delete-item') {
+    showConfirm('確定要刪除這一站嗎？相關的留言也會一併刪除。', () => {
+      const day = dayOf(btn.dataset.dayId);
+      if (!day) return;
+      day.items = day.items.filter((it) => it.id !== btn.dataset.itemId);
+      deleteCommentsOfItem(btn.dataset.itemId);
+      commitAndRender();
+    });
+  } else if (action === 'move-item-up' || action === 'move-item-down') {
+    const day = dayOf(btn.dataset.dayId);
+    if (!day) return;
+    const idx = day.items.findIndex((it) => it.id === btn.dataset.itemId);
+    const newIdx = idx + (action === 'move-item-up' ? -1 : 1);
+    if (idx === -1 || newIdx < 0 || newIdx >= day.items.length) return;
+    const tmp = day.items[idx]; day.items[idx] = day.items[newIdx]; day.items[newIdx] = tmp;
+    commitAndRender();
+  }
+});
+
+// 欄位改動一律用 change 事件（離開欄位才提交），避免打字打到一半被重繪打斷。
+$('app').addEventListener('change', (e) => {
+  const t = e.target;
+
+  // 任何受邀成員都能勾選「已處理」
+  if (t.dataset.action === 'toggle-comment-resolved') {
+    setCommentResolved(t.dataset.commentId, t.checked);
+    return;
+  }
+
+  if (!canEdit() || !trip) return;
+  const field = t.dataset.field;
+  if (!field) return;
+
+  if (t.dataset.dayId && !t.dataset.itemId) {
+    const day = trip.days.find((d) => d.id === t.dataset.dayId);
+    if (!day) return;
+    day[field] = t.value;
+    commitAndRender();
+  } else if (t.dataset.itemId) {
+    const day = trip.days.find((d) => d.id === t.dataset.dayId);
+    const item = day && day.items.find((it) => it.id === t.dataset.itemId);
+    if (!item) return;
+    if (field === 'durationMin' || field === 'travelToNextMin') item[field] = Math.max(0, Number(t.value) || 0);
+    else if (field === 'fixedTimeEnabled') item[field] = t.checked;
+    else item[field] = t.value;
+    commitAndRender();
+  }
+});
+
+$('app').addEventListener('submit', (e) => {
+  const form = e.target.closest('form[data-action="add-comment"]');
+  if (!form) return;
+  e.preventDefault();
+  const text = form.elements.text.value.trim();
+  if (!text) return;
+  addComment(form.dataset.itemId, text);
+  commentDrafts[form.dataset.itemId] = '';
+  form.elements.text.value = '';
+});
+
+$('tripTitleInput').addEventListener('change', (e) => {
+  if (!canEdit() || !trip) return;
+  trip.tripTitle = e.target.value.trim() || '我的旅行';
+  commitAndRender();
+});
+
+$('btnCreateBlank').addEventListener('click', () => {
+  if (!isOwner) return;
+  trip = buildBlankTrip();
+  activeDayId = trip.days[0].id;
+  commitAndRender();
+});
+
+$('btnPrint').addEventListener('click', () => window.print());
+$('btnExport').addEventListener('click', exportJson);
+$('btnImportTrigger').addEventListener('click', () => $('fileImport').click());
+$('fileImport').addEventListener('change', handleImportFile);
+$('btnLogout').addEventListener('click', () => signOut(auth));
+$('btnDeniedLogout').addEventListener('click', () => signOut(auth));
+
+// 匯出：格式相容舊版工具（留言放在各地點的 comments 陣列裡）
+function exportJson() {
+  if (!trip) { showToast('目前沒有行程可以匯出'); return; }
+  const out = {
+    tripTitle: trip.tripTitle,
+    isSample: false,
+    activeDayId: activeDayId,
+    days: trip.days.map((d) => ({
+      id: d.id, label: d.label, date: d.date, startTime: d.startTime,
+      items: d.items.map((it) => Object.assign({}, it, {
+        comments: (commentsByItem[it.id] || []).map((c) => ({
+          id: c.id, author: c.authorName, text: c.text, resolved: !!c.resolved, createdAt: c.createdAtMs || Date.now()
+        }))
+      }))
+    }))
+  };
+  const json = JSON.stringify(out, null, 2);
+  const filename = (trip.tripTitle || 'trip').replace(/[\\/:*?"<>|]/g, '') + '.json';
+  try {
+    const url = URL.createObjectURL(new Blob([json], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('已匯出 ' + filename);
+  } catch (err) {
+    showToast('匯出失敗：' + err.message);
+  }
+}
+
+// 匯入（僅主人）：覆蓋目前行程；檔案裡的舊留言會另外建立成新留言（署名為原留言者）
+function handleImportFile(e) {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!file || !isOwner) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const raw = JSON.parse(reader.result);
+      if (!raw || !Array.isArray(raw.days)) throw new Error('格式不正確：缺少 days 陣列');
+      showConfirm('匯入會覆蓋目前雲端上的行程，所有家人會立刻看到新的內容，確定要匯入嗎？', async () => {
+        trip = normalizeTrip(raw);
+        activeDayId = trip.days[0] ? trip.days[0].id : null;
+        commitAndRender();
+        const legacy = [];
+        raw.days.forEach((d) => (d.items || []).forEach((it) => (it.comments || []).forEach((c) => {
+          if (it.id && c && c.text) legacy.push({ itemId: it.id, name: c.author || '匿名', text: String(c.text), resolved: !!c.resolved });
+        })));
+        for (const c of legacy) {
+          try { await addComment(c.itemId, c.text, c.name, c.resolved); } catch (err) { /* 單則失敗略過 */ }
+        }
+        showToast('匯入成功：' + trip.tripTitle);
+      });
+    } catch (err) {
+      showToast('匯入失敗：' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+
+/* ---------------- 6. 儲存與同步（Firestore） ---------------- */
+
+let saveTimer = null;
+let writeInFlight = false;
+let writeQueued = false;
+
+// 尚未寫進雲端的本機修改（排隊中或寫入中）
+const hasUnsavedLocal = () => saveTimer !== null || writeInFlight;
+
+function tripRef() { return doc(db, 'trips', TRIP_ID); }
+function commentsCol() { return collection(db, 'trips', TRIP_ID, 'comments'); }
+
+function scheduleSave() {
+  if (!isOwner) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flushSave, 500);
+  setSyncStatus('', '儲存中…');
+}
+
+// 一次只送出一個寫入；寫入期間又有新修改，就等這次結束後再送最新的一份。
+async function flushSave() {
+  saveTimer = null;
+  if (writeInFlight) { writeQueued = true; return; }
+  if (!trip) return;
+  writeInFlight = true;
+  try {
+    await setDoc(tripRef(), {
+      tripTitle: trip.tripTitle,
+      days: trip.days.map((d) => ({
+        id: d.id, label: d.label, date: d.date, startTime: d.startTime,
+        items: d.items.map((it) => ({
+          id: it.id, type: it.type, name: it.name, note: it.note,
+          durationMin: it.durationMin, fixedTimeEnabled: it.fixedTimeEnabled, fixedStartTime: it.fixedStartTime,
+          travelToNextMode: it.travelToNextMode, travelToNextMin: it.travelToNextMin, checkoutTime: it.checkoutTime
+        }))
+      })),
+      updatedAt: serverTimestamp()
+    });
+    setSyncStatus('live', '✓ 已儲存，家人即時可見');
+  } catch (err) {
+    console.error('儲存失敗：', err);
+    setSyncStatus('error', '⚠ 儲存失敗：' + (err.code || err.message));
+  } finally {
+    writeInFlight = false;
+    if (writeQueued) { writeQueued = false; flushSave(); }
+  }
+}
+
+function authorName() {
+  return (currentUser.displayName || (currentUser.email || '').split('@')[0] || '家人').slice(0, 40);
+}
+
+// 新增留言。name／resolved 只在「匯入舊留言」時使用（此時是主人代寫，署名沿用原留言者）。
+function addComment(itemId, text, nameOverride, resolvedOverride) {
+  return addDoc(commentsCol(), {
+    itemId: itemId,
+    authorUid: currentUser.uid,
+    authorName: (nameOverride || authorName()).slice(0, 40),
+    text: text.slice(0, 1000),
+    resolved: !!resolvedOverride,
+    createdAt: serverTimestamp()
+  }).catch((err) => {
+    console.error('留言失敗：', err);
+    showToast('留言失敗：' + (err.code || err.message));
+    throw err;
+  });
+}
+
+function setCommentResolved(commentId, resolved) {
+  updateDoc(doc(db, 'trips', TRIP_ID, 'comments', commentId), { resolved: !!resolved })
+    .catch((err) => { console.error(err); showToast('更新失敗：' + (err.code || err.message)); });
+}
+
+function deleteComment(commentId) {
+  deleteDoc(doc(db, 'trips', TRIP_ID, 'comments', commentId))
+    .catch((err) => { console.error(err); showToast('刪除失敗：' + (err.code || err.message)); });
+}
+
+// 刪除地點時，順手清掉它的留言（盡力而為，失敗不影響行程）
+async function deleteCommentsOfItem(itemId) {
+  try {
+    const snap = await getDocs(query(commentsCol(), where('itemId', '==', itemId)));
+    snap.forEach((d) => deleteDoc(d.ref).catch(() => {}));
+  } catch (err) { /* 略過 */ }
+}
+
+function subscribeData() {
+  unsubscribeData();
+  setSyncStatus('', '連線中…');
+
+  unsubTrip = onSnapshot(tripRef(), (snap) => {
+    tripLoaded = true;
+    // 主人自己的修改還在路上時，忽略雲端傳回來的（可能較舊的）版本，避免蓋掉剛做的操作。
+    if (isOwner && hasUnsavedLocal()) return;
+    // 我們自己剛寫出去、尚未被伺服器確認的本機回聲，也不必重繪。
+    if (isOwner && snap.metadata.hasPendingWrites) return;
+    trip = snap.exists() ? normalizeTrip(snap.data()) : null;
+    if (trip && !isOwner) setSyncStatus('live', '🔄 即時同步中');
+    else if (trip) setSyncStatus('live', '✓ 已同步');
+    else setSyncStatus('', '');
+    showScreen('main');
+    requestRender();
+  }, (err) => handleDataError(err));
+
+  const q = query(commentsCol(), orderBy('createdAt', 'asc'));
+  unsubComments = onSnapshot(q, (snap) => {
+    const map = {};
+    snap.forEach((d) => {
+      const c = d.data();
+      const ts = c.createdAt && typeof c.createdAt.toMillis === 'function' ? c.createdAt.toMillis() : 0;
+      (map[c.itemId] = map[c.itemId] || []).push({
+        id: d.id, itemId: c.itemId, authorUid: c.authorUid, authorName: c.authorName,
+        text: c.text, resolved: !!c.resolved, createdAtMs: ts
+      });
+    });
+    commentsByItem = map;
+    requestRender();
+  }, (err) => handleDataError(err));
+}
+
+function unsubscribeData() {
+  if (unsubTrip) { unsubTrip(); unsubTrip = null; }
+  if (unsubComments) { unsubComments(); unsubComments = null; }
+}
+
+function handleDataError(err) {
+  console.error('同步錯誤：', err);
+  if (err && err.code === 'permission-denied') {
+    unsubscribeData();
+    $('deniedEmail').textContent = currentUser ? currentUser.email : '';
+    showScreen('screenDenied');
+  } else {
+    setSyncStatus('error', '⚠ 同步中斷：' + ((err && err.code) || (err && err.message) || '未知錯誤'));
+  }
+}
+
+
+/* ---------------- 7. 登入流程與啟動 ---------------- */
+
+function isConfigured() {
+  return FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.indexOf('PASTE') === -1
+      && FIREBASE_CONFIG.projectId && FIREBASE_CONFIG.projectId.indexOf('PASTE') === -1;
+}
+
+function loginErrorMessage(err) {
+  const code = err && err.code;
+  if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') return '';
+  if (code === 'auth/popup-blocked') return '瀏覽器擋掉了登入視窗，請允許彈出視窗後再試一次。';
+  if (code === 'auth/unauthorized-domain') return '這個網址還沒加入 Firebase 的「授權網域」。請到 Firebase 主控台 Authentication → 設定 → 授權網域，加入目前網址的網域。';
+  return '登入失敗：' + (code || (err && err.message) || '未知錯誤');
+}
+
+$('btnLogin').addEventListener('click', async () => {
+  $('loginError').hidden = true;
+  try {
+    await signInWithPopup(auth, new GoogleAuthProvider());
+  } catch (err) {
+    console.error('登入失敗：', err);
+    const msg = loginErrorMessage(err);
+    if (msg) { $('loginError').textContent = msg; $('loginError').hidden = false; }
+  }
+});
+
+function start() {
+  if (!isConfigured()) { showScreen('screenSetup'); return; }
+  app = initializeApp(FIREBASE_CONFIG);
+  auth = getAuth(app);
+  db = getFirestore(app);
+
+  onAuthStateChanged(auth, (user) => {
+    unsubscribeData();
+    currentUser = user;
+    trip = null; tripLoaded = false; commentsByItem = {};
+    if (!user) { showScreen('screenLogin'); return; }
+    isOwner = OWNER_EMAILS.map((s) => s.toLowerCase()).indexOf((user.email || '').toLowerCase()) !== -1;
+    showScreen('screenLoading');
+    subscribeData();
+  });
+}
+
+start();
+</script>
+</body>
+</html>
