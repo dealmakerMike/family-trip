@@ -122,6 +122,20 @@
   input:disabled, select:disabled, textarea:disabled { opacity: 1; background: var(--card-soft); color: var(--ink); cursor: default; }
   input[readonly] { cursor: default; }
 
+  /* -------------------- 提醒橫幅 / 錯誤顯示 -------------------- */
+  .warn-box {
+    background: #FFF3CD; color: #4A3A00; border: 1px solid #E6C766; border-radius: 10px;
+    padding: 12px 14px; line-height: 1.7; margin-bottom: 14px; font-size: 13px;
+  }
+  .warn-box b { font-weight: 700; }
+  .warn-box button { margin-top: 8px; }
+  #fatal {
+    position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 100;
+    background: #7A1F12; color: #fff; border-radius: 10px; padding: 12px 14px; font-size: 12px;
+    line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 40vh; overflow: auto;
+  }
+  #fatal button { margin-top: 8px; background: #fff; color: #7A1F12; border-color: #fff; }
+
   /* -------------------- 登入 / 設定 / 無權限 畫面 -------------------- */
   .screen {
     max-width: 460px; margin: 60px auto 0;
@@ -142,7 +156,7 @@
   }
   .trip-title-input {
     font-family: var(--font-display); font-size: 26px; font-weight: 600;
-    border: 1px solid transparent; background: transparent; padding: 2px 4px; width: auto; min-width: 180px;
+    border: 1px solid transparent; background: transparent; padding: 2px 4px; width: min(100%, 640px); min-width: 180px;
   }
   .trip-title-input:not([readonly]):hover, .trip-title-input:not([readonly]):focus { border-color: var(--line-strong); background: var(--card); }
   .trip-title-input[readonly] { background: transparent; }
@@ -248,7 +262,7 @@
   .toast {
     position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
     background: var(--ink); color: var(--paper); padding: 10px 18px; border-radius: 999px;
-    font-size: 13px; box-shadow: var(--shadow); z-index: 50;
+    font-size: 13px; box-shadow: var(--shadow); z-index: 50; max-width: 92vw; text-align: center;
   }
   .modal-overlay { position: fixed; inset: 0; background: rgba(20,25,22,.45); display: flex; align-items: center; justify-content: center; z-index: 60; padding: 16px; }
   .modal-box { background: var(--card); border-radius: 12px; padding: 18px; max-width: 420px; width: 100%; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px; }
@@ -261,20 +275,183 @@
     .fixed-time-row .checkout-field { margin-left: 0; padding-left: 0; border-left: none; }
   }
 
+  /* ============================================================
+     家人檢視版面（手機優先，電腦也適用）
+     只在 body.read-mode 時生效；主人編輯模式的版面完全不受影響。
+     原則：字放大、一次看一件事、按鈕夠大好按、輸入框 16px（避免 iPhone 自動放大）。
+     ============================================================ */
+  .actions-edit { display: contents; }
+  .menu { position: relative; }
+  .menu summary {
+    list-style: none; cursor: pointer; border: 1px solid var(--line-strong); border-radius: 8px;
+    padding: 7px 14px; background: var(--card); font-size: 14px; user-select: none;
+  }
+  .menu summary::-webkit-details-marker { display: none; }
+  .menu-pop {
+    position: absolute; right: 0; top: calc(100% + 6px); z-index: 40; min-width: 170px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow);
+    padding: 6px; display: flex; flex-direction: column; gap: 2px;
+  }
+  .menu-pop button { text-align: left; border-color: transparent; min-height: 44px; font-size: 15px; }
+
+  body.read-mode { font-size: 16px; }
+  body.read-mode #app { max-width: 720px; }
+  body.read-mode .topbar { flex-direction: row; align-items: center; padding-bottom: 10px; margin-bottom: 6px; gap: 8px; }
+  body.read-mode .topbar > div:first-child { flex: 1 1 200px; min-width: 0; }
+  body.read-mode .trip-title-input { font-size: 22px; width: 100%; padding-left: 0; }
+  body.read-mode .trip-sub, body.read-mode .user-chip, body.read-mode .role-badge { display: none; }
+  body.read-mode .topbar-actions { flex: 0 0 auto; gap: 6px; }
+  body.read-mode .sync-status { font-size: 11px; }
+  body.read-mode .day-tabs {
+    position: sticky; top: 0; z-index: 30; background: var(--paper);
+    flex-wrap: nowrap; overflow-x: auto; gap: 8px; align-items: stretch;
+    margin: 0 -16px 14px; padding: 8px 16px; border-bottom: 1px solid var(--line);
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  body.read-mode .day-tabs::-webkit-scrollbar { display: none; }
+  body.read-mode .day-tab-btn {
+    flex: 0 0 auto; min-width: 68px; padding: 7px 12px; border-radius: 12px; text-align: center;
+    line-height: 1.25; font-size: 15px; position: relative;
+  }
+  body.read-mode .day-tab-btn small { display: block; font-size: 11px; opacity: .85; margin-top: 2px; }
+  .today-dot { position: absolute; top: 4px; right: 6px; width: 7px; height: 7px; border-radius: 50%; background: var(--food); }
+
+  .r-dayhead { margin: 2px 0 16px; }
+  .r-dayhead h2 { font-size: 22px; line-height: 1.35; }
+  .r-dayhead p { margin: 6px 0 0; color: var(--ink-soft); font-size: 14px; line-height: 1.7; }
+  .r-alert { color: var(--danger); font-weight: 600; }
+
+  .r-list { display: flex; flex-direction: column; }
+  .r-item { display: grid; grid-template-columns: 54px minmax(0, 1fr); gap: 0 12px; }
+  .r-time { text-align: right; padding-top: 14px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; line-height: 1.3; }
+  .r-time b { display: block; color: var(--ink); font-size: 16px; }
+  .r-time span { color: var(--ink-soft); font-size: 12px; }
+  .r-card {
+    background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--ink-soft);
+    border-radius: 14px; padding: 12px 14px; box-shadow: var(--shadow); min-width: 0;
+  }
+  .r-item.type-attraction .r-card { border-left-color: var(--accent); }
+  .r-item.type-food .r-card { border-left-color: var(--food); }
+  .r-item.type-lodging .r-card { border-left-color: var(--lodging); }
+  .r-title { margin: 8px 0 0; font-family: var(--font-body); font-size: 18px; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+  .r-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: var(--card-soft); border: 1px solid var(--line); color: var(--ink); white-space: nowrap; }
+  .chip.fixed { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+  .chip.warn { border-color: var(--danger); color: var(--danger); font-weight: 600; }
+  .r-note { margin: 10px 0 0; font-size: 15px; line-height: 1.75; overflow-wrap: anywhere; }
+  .r-note a { color: var(--accent); }
+  .r-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .r-maplink {
+    display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 1px solid var(--accent);
+    border-radius: 10px; color: var(--accent); text-decoration: none; font-size: 14px; font-weight: 600;
+  }
+  .r-travel {
+    margin: 4px 0 4px 6px; padding: 8px 0 8px 14px; border-left: 2px dashed var(--line-strong);
+    font-size: 13px; color: var(--ink-soft); grid-column: 2; line-height: 1.6;
+  }
+  .r-travel .mode { color: var(--transport); font-weight: 700; }
+  .r-travel .conflict-note { display: inline-block; margin-left: 6px; }
+
+  .r-comments { margin-top: 12px; border-top: 1px dashed var(--line); padding-top: 12px; }
+  .r-cbtn {
+    width: 100%; min-height: 46px; display: flex; align-items: center; justify-content: space-between;
+    background: var(--card-soft); border: 1px solid var(--line); border-radius: 10px; color: var(--ink);
+    font-size: 15px; font-weight: 600; padding: 0 12px; text-align: left;
+  }
+  .r-cbtn .badge { background: var(--note); color: var(--note-ink); border-radius: 999px; font-size: 12px; padding: 2px 9px; margin-right: 10px; white-space: nowrap; }
+  .r-clist { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+  .r-c { background: var(--card-soft); border-radius: 10px; padding: 10px 12px; font-size: 15px; line-height: 1.65; }
+  .r-c.resolved { opacity: .6; }
+  .r-c.resolved .r-ctext { text-decoration: line-through; }
+  .r-ctext { overflow-wrap: anywhere; white-space: pre-wrap; }
+  .r-cmeta { font-size: 12px; color: var(--ink-soft); margin-top: 4px; }
+  .r-crow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+  .r-resolve { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; font-size: 14px; cursor: pointer; }
+  .r-resolve input { width: 22px; height: 22px; }
+  .r-form textarea { font-size: 16px; min-height: 88px; padding: 10px 12px; }
+  .r-form .comment-as { display: block; margin-bottom: 6px; font-size: 12px; }
+  .r-form button[type="submit"] { width: 100%; min-height: 48px; font-size: 16px; margin-top: 8px; }
+  .r-daynav { display: flex; gap: 10px; margin: 20px 0 8px; }
+  .r-daynav button { flex: 1; min-height: 48px; font-size: 15px; }
+  .r-empty { padding: 30px 10px; text-align: center; color: var(--ink-soft); border: 1px dashed var(--line-strong); border-radius: 12px; }
+
+  @media (max-width: 520px) {
+    /* 窄螢幕：標題獨占一整列（不被截斷），同步狀態與「更多」放在下一列 */
+    body.read-mode .topbar { flex-wrap: wrap; }
+    body.read-mode .topbar > div:first-child { flex: 1 1 100%; }
+    body.read-mode .topbar-actions { width: 100%; justify-content: space-between; }
+  }
+  @media (max-width: 420px) {
+    .r-item { grid-template-columns: 46px minmax(0, 1fr); gap: 0 8px; }
+    .r-time b { font-size: 14px; }
+    .r-card { padding: 11px 12px; }
+  }
+
   /* -------------------- 列印：所有天都印出來，留言也展開 -------------------- */
   @media print {
     body { background: #fff; color: #000; padding: 0; }
-    .topbar-actions, .day-tabs, .add-item-row, .comment-form, .comments-toggle, button, footer.help { display: none !important; }
+    .topbar-actions, .day-tabs, .add-item-row, .comment-form, .comments-toggle, button, footer.help, .warn-box,
+    .r-daynav, .r-form, .r-cbtn, .r-maplink, .menu { display: none !important; }
     .day-panel[hidden] { display: block !important; }
     [data-comments-body][hidden] { display: block !important; }
-    .item-card, .day-settings { box-shadow: none; border: 1px solid #999; break-inside: avoid; }
+    .item-card, .day-settings, .r-card { box-shadow: none; border: 1px solid #999; break-inside: avoid; }
+    .r-item { break-inside: avoid; }
     .day-panel { margin-bottom: 24px; }
   }
 </style>
 </head>
 
 <body>
+
+<!-- ============================================================
+     防白屏保護（一般 script，不依賴 Firebase，最先執行）：
+     1. 偵測 LINE / Facebook / Instagram 等 App 內建瀏覽器，顯示提醒。
+        這類瀏覽器不能用 Google 登入，常見結果就是整頁空白。
+     2. 任何 JavaScript 錯誤都顯示在畫面下方，不會默默變成白畫面。
+     3. 載入超過 10 秒還沒進入登入畫面，顯示可能原因。
+     ============================================================ -->
+<script>
+  (function () {
+    var IN_APP = /Line\/|FBAN|FBAV|FB_IAB|Instagram|MicroMessenger|KAKAOTALK|Twitter|GSA\/|Snapchat|; wv\)/i;
+    window.__IN_APP__ = IN_APP.test(navigator.userAgent || '');
+
+    window.__showFatal = function (msg) {
+      var el = document.getElementById('fatal');
+      if (!el) return;
+      el.firstChild.textContent = '頁面發生錯誤，請把這段文字截圖給行程主人：\n' + msg;
+      el.hidden = false;
+    };
+    window.addEventListener('error', function (e) {
+      var m = (e && e.message) ? e.message : '未知錯誤';
+      if (e && e.filename) m += '\n' + e.filename + ':' + e.lineno;
+      window.__showFatal(m);
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+      var r = e && e.reason;
+      window.__showFatal('未處理的錯誤：' + ((r && (r.code || r.message)) || String(r)));
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+      if (window.__IN_APP__) document.getElementById('inAppBanner').hidden = false;
+      setTimeout(function () {
+        var loading = document.getElementById('screenLoading');
+        if (loading && !loading.hidden) {
+          window.__showFatal('載入時間過長。可能原因：網路不穩，或在 LINE 等 App 內建瀏覽器開啟（請改用 Chrome 或 Safari），或瀏覽器版本太舊。');
+        }
+      }, 10000);
+    });
+  })();
+</script>
+
 <div id="app">
+
+  <!-- App 內建瀏覽器提醒 -->
+  <div id="inAppBanner" class="warn-box" hidden>
+    <b>你目前是在 LINE 等 App 內建的瀏覽器開啟。</b><br>
+    Google 不允許在這種瀏覽器登入，會導致登入失敗或畫面整頁空白。請改用手機的 Chrome 或 Safari 開啟：
+    點右上角「⋯」或分享圖示，選「用瀏覽器開啟」（Open in browser）；或按下方按鈕複製網址，貼到 Chrome／Safari 網址列。<br>
+    <button id="btnCopyLink" type="button">複製網址</button>
+  </div>
 
   <!-- ============ 畫面 0：尚未設定 Firebase ============ -->
   <section id="screenSetup" class="screen" hidden>
@@ -314,11 +491,25 @@
         <span id="syncStatus" class="sync-status"></span>
         <span id="roleBadge" class="role-badge"></span>
         <span id="userChip" class="user-chip"></span>
-        <button id="btnExport" type="button" title="把整份行程與留言存成 JSON 備份">匯出 JSON</button>
-        <button id="btnImportTrigger" type="button" hidden title="讀取 JSON 行程檔（會覆蓋目前行程）">匯入 JSON</button>
+        <!-- 主人專用：在「編輯」與「家人檢視預覽」之間切換 -->
+        <button id="btnToggleView" type="button" data-action="toggle-view" hidden></button>
+        <!-- 編輯模式（電腦）：完整按鈕列 -->
+        <span id="actionsEdit" class="actions-edit">
+          <button id="btnExport" type="button" title="把整份行程與留言存成 JSON 備份">匯出 JSON</button>
+          <button id="btnImportTrigger" type="button" hidden title="讀取 JSON 行程檔（會覆蓋目前行程）">匯入 JSON</button>
+          <button id="btnPrint" type="button" title="開啟列印，可另存成 PDF">列印 / PDF</button>
+          <button id="btnLogout" type="button">登出</button>
+        </span>
+        <!-- 檢視模式（手機）：收進「更多」選單，畫面上方保持乾淨 -->
+        <details id="menuRead" class="menu" hidden>
+          <summary>更多</summary>
+          <div class="menu-pop">
+            <button id="btnPrint2" type="button">列印 / 存成 PDF</button>
+            <button id="btnExport2" type="button">匯出備份</button>
+            <button id="btnLogout2" type="button">登出</button>
+          </div>
+        </details>
         <input type="file" id="fileImport" accept=".json,application/json" hidden>
-        <button id="btnPrint" type="button" title="開啟列印，可另存成 PDF">列印 / PDF</button>
-        <button id="btnLogout" type="button">登出</button>
       </div>
     </header>
 
@@ -348,6 +539,7 @@
 
 <div id="toast" class="toast" hidden></div>
 <div id="modalRoot"></div>
+<div id="fatal" hidden><span></span><br><button type="button" onclick="document.getElementById('fatal').hidden=true">關閉</button></div>
 
 <script type="module">
 /* ==================================================================
@@ -396,7 +588,6 @@ const FIREBASE_CONFIG = {
 };
 
 // 主人（可以編輯行程）的 Gmail，全部小寫。必須和安全規則裡的 ownerEmails 一致。
-// ★ 請把下面這一行換成你自己的 Gmail。
 const OWNER_EMAILS = ["david1231@gmail.com"];
 
 const TRIP_ID = "main"; // 行程文件名稱，一般不需要改
@@ -511,7 +702,13 @@ let unsubTrip = null, unsubComments = null;
 let isFieldFocused = false;    // 使用者正在輸入欄位時，先不重繪
 let renderPending = false;
 
-const canEdit = () => isOwner;
+// 主人可以在「編輯」與「家人檢視預覽」之間切換（記在這台裝置上）。
+// 非主人永遠是檢視模式。canEdit() 為 false 時，畫面使用手機友善的家人版面。
+const VIEW_MODE_KEY = 'family-trip-view-mode';
+let viewMode = safeLocalGet(VIEW_MODE_KEY) === 'view' ? 'view' : 'edit';
+let didPickInitialDay = false; // 第一次載入時，若今天剛好在行程內，自動跳到今天那一天
+
+const canEdit = () => isOwner && viewMode === 'edit';
 
 
 /* ---------------- 3. 時間軸計算（純函式） ---------------- */
@@ -586,10 +783,21 @@ function renderNow() {
     return;
   }
 
+  if (!didPickInitialDay) {
+    didPickInitialDay = true;
+    const todayDay = trip.days.find((d) => d.date === todayISODate());
+    if (todayDay) activeDayId = todayDay.id;
+  }
   const active = getActiveDay();
   activeDayId = active.id;
-  renderDayTabs();
-  $('dayContent').innerHTML = trip.days.map(renderDayPanel).join('');
+  if (canEdit()) {
+    renderDayTabs();
+    $('dayContent').innerHTML = trip.days.map(renderDayPanel).join('');
+  } else {
+    renderReadDayTabs();
+    $('dayContent').innerHTML = trip.days.map(renderReadDayPanel).join('');
+    centerActiveTab();
+  }
 }
 
 // 雲端傳來更新時使用：使用者正在輸入欄位就先不重繪，等他離開欄位再補做。
@@ -605,9 +813,180 @@ function renderTopbar() {
   input.readOnly = !canEdit();
   document.title = title;
 
-  $('roleBadge').textContent = isOwner ? '編輯者' : '檢視・可留言';
+  document.body.classList.toggle('read-mode', !canEdit());
+  $('roleBadge').textContent = isOwner ? (canEdit() ? '編輯者' : '家人檢視預覽') : '檢視・可留言';
   $('userChip').textContent = currentUser.displayName || currentUser.email;
-  $('btnImportTrigger').hidden = !isOwner;
+  $('btnImportTrigger').hidden = !canEdit();
+  $('actionsEdit').hidden = !canEdit();
+  $('menuRead').hidden = canEdit();
+  const toggle = $('btnToggleView');
+  toggle.hidden = !isOwner;
+  toggle.textContent = canEdit() ? '家人檢視預覽' : '回到編輯模式';
+}
+
+/* ---------- 家人檢視版面（手機優先） ---------- */
+
+const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
+
+function parseISODate(iso) {
+  if (!iso) return null;
+  const p = String(iso).split('-');
+  if (p.length !== 3) return null;
+  const d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+  return isNaN(d.getTime()) ? null : d;
+}
+function shortDate(iso) {
+  const d = parseISODate(iso);
+  return d ? (d.getMonth() + 1) + '/' + d.getDate() + ' 週' + WEEKDAYS[d.getDay()] : '';
+}
+function longDate(iso) {
+  const d = parseISODate(iso);
+  return d ? d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate() + '（週' + WEEKDAYS[d.getDay()] + '）' : '';
+}
+// "Day 3 海景溫泉放鬆" -> 分頁上只顯示 "Day 3"，標題顯示完整
+function shortDayLabel(label) {
+  const m = /^\s*(Day\s*\d+)/i.exec(label || '');
+  return m ? m[1] : String(label || '').slice(0, 6);
+}
+function dayTitleRest(label) {
+  return String(label || '').replace(/^\s*Day\s*\d+\s*/i, '');
+}
+
+// 把備註中的網址變成可點的連結（先跳脫再轉換，避免注入）
+function linkify(text) {
+  return escapeHtml(text)
+    .replace(/(https?:\/\/[A-Za-z0-9\-._~:\/?#\[\]@!$&'()*+,;=%]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
+    .replace(/\n/g, '<br>');
+}
+function mapsSearchUrl(name) {
+  return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(name);
+}
+
+function renderReadDayTabs() {
+  const today = todayISODate();
+  $('dayTabs').innerHTML = trip.days.map((day) => {
+    const active = day.id === activeDayId;
+    return '<button type="button" class="day-tab-btn' + (active ? ' active' : '') + '" data-action="select-day" data-day-id="' + day.id + '">'
+      + (day.date === today ? '<span class="today-dot" title="今天"></span>' : '')
+      + escapeHtml(shortDayLabel(day.label))
+      + '<small>' + escapeHtml(shortDate(day.date) || '未定') + '</small></button>';
+  }).join('');
+}
+
+// 把目前這一天的分頁捲到橫向置中（只動分頁列本身，不會讓整頁跳動）
+function centerActiveTab() {
+  const tabs = $('dayTabs');
+  const ab = tabs.querySelector('.day-tab-btn.active');
+  if (ab) tabs.scrollLeft = ab.offsetLeft - (tabs.clientWidth - ab.offsetWidth) / 2;
+}
+
+function renderReadDayPanel(day) {
+  const isActive = day.id === activeDayId;
+  const schedule = computeSchedule(day);
+  const hasConflict = schedule.rows.some((r) => r.conflict);
+  const idx = trip.days.findIndex((d) => d.id === day.id);
+  const rest = dayTitleRest(day.label);
+  const pending = day.items.reduce((s, it) => s + (commentsByItem[it.id] || []).filter((c) => !c.resolved).length, 0);
+  // 「預計結束」不把過夜住宿算進去（否則會顯示成隔天的時間，讓人困惑）
+  const activityRows = schedule.rows.filter((r) => r.item.type !== 'lodging');
+  const lastRow = activityRows.length ? activityRows[activityRows.length - 1] : null;
+  const endLabel = lastRow ? minutesToHHMM(lastRow.endMin) : minutesToHHMM(schedule.dayEndMin);
+
+  let html = '<section class="day-panel" data-day-id="' + day.id + '"' + (isActive ? '' : ' hidden') + '>';
+  html += '<div class="r-dayhead"><h2>' + escapeHtml(shortDayLabel(day.label)) + (rest ? '・' + escapeHtml(rest) : '') + '</h2><p>'
+    + escapeHtml(longDate(day.date)) + (day.date ? '<br>' : '')
+    + day.items.length + ' 個地點・' + escapeHtml(day.startTime || '') + ' 開始・預計 ' + endLabel + ' 結束'
+    + (pending > 0 ? '<br>目前有 <b>' + pending + '</b> 則建議還沒處理' : '')
+    + (hasConflict ? '<br><span class="r-alert">⚠ 有行程時間可能來不及，請跟主人確認</span>' : '')
+    + '</p></div>';
+
+  if (day.items.length === 0) {
+    html += '<div class="r-empty">這天還沒有安排行程。</div>';
+  } else {
+    html += '<div class="r-list">';
+    schedule.rows.forEach((row, i) => {
+      html += renderReadItem(row);
+      if (i < schedule.rows.length - 1) html += renderReadTravel(row, schedule.rows[i + 1]);
+    });
+    html += '</div>';
+  }
+
+  html += '<div class="r-daynav">';
+  if (idx > 0) html += '<button type="button" data-action="select-day" data-day-id="' + trip.days[idx - 1].id + '">← 前一天</button>';
+  if (idx < trip.days.length - 1) html += '<button type="button" class="primary" data-action="select-day" data-day-id="' + trip.days[idx + 1].id + '">下一天 →</button>';
+  html += '</div></section>';
+  return html;
+}
+
+function renderReadTravel(fromRow, toRow) {
+  const item = fromRow.item;
+  const mins = Number(item.travelToNextMin) || 0;
+  if (mins <= 0) return '';
+  return '<div class="r-travel"><span class="mode">' + escapeHtml(item.travelToNextMode) + '</span> 約 ' + minutesToDurationLabel(mins)
+    + '・預計 ' + minutesToHHMM(toRow.startMin) + ' 抵達'
+    + (toRow.conflict ? '<span class="conflict-note">⚠ 會來不及</span>' : '')
+    + '</div>';
+}
+
+function renderReadItem(row) {
+  const item = row.item;
+  const isLodging = item.type === 'lodging';
+  const typeClass = 'type-' + item.type;
+  const comments = commentsByItem[item.id] || [];
+
+  let html = '<div class="r-item ' + typeClass + '">';
+  // 左欄：時間（住宿只顯示入住時間，避免「+1日」的結束時間造成混淆）
+  html += '<div class="r-time"><b>' + minutesToHHMM(row.startMin) + '</b>' + (isLodging ? '' : '<span>' + minutesToHHMM(row.endMin) + '</span>') + '</div>';
+
+  html += '<article class="r-card" id="item-' + item.id + '">';
+  html += '<span class="type-badge ' + typeClass + '">' + TYPE_LABELS[item.type] + '</span>';
+  html += '<h3 class="r-title">' + escapeHtml(item.name || '（未命名）') + '</h3>';
+
+  const chips = [];
+  if (!isLodging) chips.push('<span class="chip">停留 ' + minutesToDurationLabel(item.durationMin) + '</span>');
+  if (item.fixedTimeEnabled && item.fixedStartTime) chips.push('<span class="chip fixed">固定 ' + escapeHtml(item.fixedStartTime) + '</span>');
+  if (row.conflict) chips.push('<span class="chip warn">⚠ 可能來不及</span>');
+  else if (row.waitMin > 0) chips.push('<span class="chip">提早到，等 ' + row.waitMin + ' 分</span>');
+  if (isLodging && item.checkoutTime) chips.push('<span class="chip">隔天 ' + escapeHtml(item.checkoutTime) + ' 前退房</span>');
+  if (chips.length) html += '<div class="r-meta">' + chips.join('') + '</div>';
+
+  if (item.note) html += '<p class="r-note">' + linkify(item.note) + '</p>';
+  if ((item.type === 'attraction' || item.type === 'food') && item.name) {
+    html += '<div class="r-actions"><a class="r-maplink" href="' + mapsSearchUrl(item.name) + '" target="_blank" rel="noopener">在地圖上查看</a></div>';
+  }
+
+  html += renderReadComments(item, comments);
+  html += '</article></div>';
+  return html;
+}
+
+function renderReadComments(item, comments) {
+  const unresolved = comments.filter((c) => !c.resolved).length;
+  const draft = commentDrafts[item.id] || '';
+  let html = '<div class="r-comments">';
+  html += '<button type="button" class="r-cbtn" data-action="toggle-comments" data-item-id="' + item.id + '">'
+    + '<span>' + (comments.length ? '建議與留言（' + comments.length + '）' : '我有想法／建議') + '</span>'
+    + '<span>' + (unresolved > 0 ? '<span class="badge">' + unresolved + ' 則待處理</span>' : '') + (openComments[item.id] ? '收起 ▴' : '展開 ▾') + '</span></button>';
+  html += '<div data-comments-body="' + item.id + '"' + (openComments[item.id] ? '' : ' hidden') + '>';
+  if (comments.length > 0) {
+    html += '<div class="r-clist">';
+    comments.forEach((c) => {
+      const canDelete = canEdit() || (currentUser && c.authorUid === currentUser.uid);
+      html += '<div class="r-c' + (c.resolved ? ' resolved' : '') + '">'
+        + '<div class="r-ctext">' + escapeHtml(c.text) + '</div>'
+        + '<div class="r-cmeta">' + escapeHtml(c.authorName || '匿名') + '・' + formatCommentTime(c.createdAtMs) + '</div>'
+        + '<div class="r-crow"><label class="r-resolve"><input type="checkbox" data-action="toggle-comment-resolved" data-comment-id="' + c.id + '"' + (c.resolved ? ' checked' : '') + '> 已處理</label>'
+        + (canDelete ? '<button type="button" class="ghost" data-action="delete-comment" data-comment-id="' + c.id + '">刪除</button>' : '')
+        + '</div></div>';
+    });
+    html += '</div>';
+  }
+  html += '<form class="r-form" data-action="add-comment" data-item-id="' + item.id + '">'
+    + '<span class="comment-as">以「' + escapeHtml(currentUser.displayName || currentUser.email) + '」的名義留言</span>'
+    + '<textarea name="text" placeholder="有想調整的地方嗎？例如：想改時間、換餐廳、這站可以跳過…" aria-label="留言內容" maxlength="1000" required>' + escapeHtml(draft) + '</textarea>'
+    + '<button type="submit" class="primary">送出建議</button></form>';
+  html += '</div></div>';
+  return html;
 }
 
 function renderDayTabs() {
@@ -782,7 +1161,7 @@ function showToast(message) {
   el.textContent = message;
   el.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.hidden = true; }, 2600);
+  toastTimer = setTimeout(() => { el.hidden = true; }, 3200);
 }
 
 // 不用瀏覽器原生 confirm()，自己刻確認視窗。
@@ -839,6 +1218,11 @@ $('app').addEventListener('click', (e) => {
   if (action === 'select-day') {
     activeDayId = btn.dataset.dayId;
     safeLocalSet(ACTIVE_DAY_KEY, activeDayId);
+    render();
+    if (!canEdit()) window.scrollTo(0, 0); // 家人版按「下一天」後回到頁面頂端
+  } else if (action === 'toggle-view') {
+    viewMode = canEdit() ? 'view' : 'edit';
+    safeLocalSet(VIEW_MODE_KEY, viewMode);
     render();
   } else if (action === 'toggle-comments') {
     openComments[btn.dataset.itemId] = !openComments[btn.dataset.itemId];
@@ -948,6 +1332,21 @@ $('btnImportTrigger').addEventListener('click', () => $('fileImport').click());
 $('fileImport').addEventListener('change', handleImportFile);
 $('btnLogout').addEventListener('click', () => signOut(auth));
 $('btnDeniedLogout').addEventListener('click', () => signOut(auth));
+// 「更多」選單（家人檢視版）裡的按鈕，做完事順便把選單收起來
+const closeMenu = () => { $('menuRead').open = false; };
+$('btnPrint2').addEventListener('click', () => { closeMenu(); window.print(); });
+$('btnExport2').addEventListener('click', () => { closeMenu(); exportJson(); });
+$('btnLogout2').addEventListener('click', () => { closeMenu(); signOut(auth); });
+
+// 複製網址（給 App 內建瀏覽器的使用者貼到 Chrome／Safari）
+$('btnCopyLink').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText(location.href);
+    showToast('已複製網址，請貼到 Chrome 或 Safari');
+  } catch (err) {
+    window.prompt('請長按複製這個網址，貼到 Chrome 或 Safari：', location.href);
+  }
+});
 
 // 匯出：格式相容舊版工具（留言放在各地點的 comments 陣列裡）
 function exportJson() {
@@ -1164,6 +1563,12 @@ function loginErrorMessage(err) {
 
 $('btnLogin').addEventListener('click', async () => {
   $('loginError').hidden = true;
+  // App 內建瀏覽器（LINE 等）不能可靠地完成 Google 登入，直接請使用者換瀏覽器，避免登入後整頁空白。
+  if (window.__IN_APP__) {
+    $('loginError').textContent = '請先改用 Chrome 或 Safari 開啟這個網址，再登入（見上方提醒）。';
+    $('loginError').hidden = false;
+    return;
+  }
   try {
     await signInWithPopup(auth, new GoogleAuthProvider());
   } catch (err) {
